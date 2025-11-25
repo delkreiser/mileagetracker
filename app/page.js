@@ -21,7 +21,7 @@ export default function GasMileageDashboard() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [timePeriod, setTimePeriod] = useState('all');
+  const [timePeriod, setTimePeriod] = useState('ytd');
   const [costPerGallonChartPeriod, setCostPerGallonChartPeriod] = useState('ytd');
   const [mpgChartPeriod, setMpgChartPeriod] = useState('ytd');
 
@@ -80,13 +80,19 @@ export default function GasMileageDashboard() {
     if (timePeriod === 'all') return data;
     
     const now = Date.now();
-    const periodDays = {
-      '30': 30,
-      '90': 90,
-      '365': 365
-    };
+    let cutoffDate;
     
-    const cutoffDate = now - periodDays[timePeriod] * 24 * 60 * 60 * 1000;
+    if (timePeriod === 'ytd') {
+      // Year to date - from January 1st of current year
+      const currentYear = new Date().getFullYear();
+      cutoffDate = new Date(currentYear, 0, 1).getTime();
+    } else {
+      const periodDays = {
+        '30': 30,
+        '90': 90
+      };
+      cutoffDate = now - periodDays[timePeriod] * 24 * 60 * 60 * 1000;
+    }
     
     return data.filter(item => item.timestamp >= cutoffDate);
   };
@@ -242,6 +248,30 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
+    // Create smooth curve path using cardinal spline interpolation
+    const createSmoothPath = (points) => {
+      if (points.length < 2) return '';
+      
+      let path = `M ${points[0].x},${points[0].y}`;
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        const current = points[i];
+        const next = points[i + 1];
+        const xMid = (current.x + next.x) / 2;
+        const yMid = (current.y + next.y) / 2;
+        
+        // Use quadratic bezier curves for smooth lines
+        path += ` Q ${current.x},${current.y} ${xMid},${yMid}`;
+        
+        if (i === points.length - 2) {
+          path += ` Q ${next.x},${next.y} ${next.x},${next.y}`;
+        }
+      }
+      
+      return path;
+    };
+    
+    const smoothPath = createSmoothPath(points);
     const linePoints = points.map(p => `${p.x},${p.y}`).join(' ');
     // Create area that fades to zero at 90% height (leaving 10% transparent at bottom)
     const areaPoints = `0,90 ${linePoints} 100,90`;
@@ -262,11 +292,13 @@ export default function GasMileageDashboard() {
           fill={`url(#${gradientId})`}
           points={areaPoints}
         />
-        <polyline
+        <path
           fill="none"
           stroke={color}
-          strokeWidth="2.5"
-          points={linePoints}
+          strokeWidth="1.5"
+          d={smoothPath}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     );
@@ -411,7 +443,7 @@ export default function GasMileageDashboard() {
             {[
               { label: 'Last 30 Days', value: '30' },
               { label: 'Last 90 Days', value: '90' },
-              { label: 'Last Year', value: '365' },
+              { label: 'YTD', value: 'ytd' },
               { label: 'All Time', value: 'all' }
             ].map(period => (
               <button
@@ -515,7 +547,7 @@ export default function GasMileageDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Cost/Gallon Chart */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
               <h2 className="text-xl font-bold text-gray-900">Cost/Gallon</h2>
               <ChartPeriodButtons 
                 currentPeriod={costPerGallonChartPeriod}
@@ -523,7 +555,7 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)}>
+              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: -20, right: 10 }}>
                 <defs>
                   <linearGradient id="colorCostPerGallon" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
@@ -556,7 +588,7 @@ export default function GasMileageDashboard() {
 
           {/* MPG Chart */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
               <h2 className="text-xl font-bold text-gray-900">MPG</h2>
               <ChartPeriodButtons 
                 currentPeriod={mpgChartPeriod}
@@ -564,7 +596,7 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, mpgChartPeriod)}>
+              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: -20, right: 10 }}>
                 <defs>
                   <linearGradient id="colorMPG" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
