@@ -25,15 +25,29 @@ export default function GasMileageDashboard() {
       const rows = json.table.rows.slice(3); // Skip header rows
       const parsedData = rows
         .filter(row => row.c[1] && row.c[1].v && row.c[3] && row.c[3].v) // Filter valid rows
-        .map(row => ({
-          timestamp: row.c[0]?.v || '',
-          odometer: parseFloat(row.c[1]?.v || 0),
-          tripMeter: parseFloat(row.c[2]?.v || 0),
-          gallons: parseFloat(row.c[3]?.v || 0),
-          totalCost: parseFloat(row.c[4]?.v || 0),
-          costPerGallon: parseFloat(row.c[5]?.v || 0),
-        }))
-        .filter(item => item.gallons > 0); // Only valid fill-ups
+        .map(row => {
+          // Parse the timestamp properly
+          let timestamp;
+          if (row.c[0]?.f) {
+            // Use formatted value if available
+            timestamp = new Date(row.c[0].f);
+          } else if (row.c[0]?.v) {
+            // Parse raw value (could be string or Date object)
+            timestamp = new Date(row.c[0].v);
+          } else {
+            timestamp = new Date();
+          }
+          
+          return {
+            timestamp: timestamp.getTime(), // Store as timestamp for reliable comparisons
+            odometer: parseFloat(row.c[1]?.v || 0),
+            tripMeter: parseFloat(row.c[2]?.v || 0),
+            gallons: parseFloat(row.c[3]?.v || 0),
+            totalCost: parseFloat(row.c[4]?.v || 0),
+            costPerGallon: parseFloat(row.c[5]?.v || 0),
+          };
+        })
+        .filter(item => item.gallons > 0 && !isNaN(item.timestamp)); // Only valid fill-ups
 
       setData(parsedData);
       setLastUpdated(new Date());
@@ -50,19 +64,16 @@ export default function GasMileageDashboard() {
   const filterDataByPeriod = (data) => {
     if (timePeriod === 'all') return data;
     
-    const now = new Date();
+    const now = Date.now();
     const periodDays = {
       '30': 30,
       '90': 90,
       '365': 365
     };
     
-    const cutoffDate = new Date(now.getTime() - periodDays[timePeriod] * 24 * 60 * 60 * 1000);
+    const cutoffDate = now - periodDays[timePeriod] * 24 * 60 * 60 * 1000;
     
-    return data.filter(item => {
-      const itemDate = new Date(item.timestamp);
-      return itemDate >= cutoffDate;
-    });
+    return data.filter(item => item.timestamp >= cutoffDate);
   };
 
   const calculateMetrics = (data) => {
@@ -99,22 +110,24 @@ export default function GasMileageDashboard() {
     // Calculate totals
     const totalFuelCost = data.reduce((sum, d) => sum + d.totalCost, 0);
     const totalMiles = data[data.length - 1].odometer - data[0].odometer;
-    const annualMileage = totalMiles / ((new Date(data[data.length - 1].timestamp) - new Date(data[0].timestamp)) / (365 * 24 * 60 * 60 * 1000));
+    const timeSpanMs = data[data.length - 1].timestamp - data[0].timestamp;
+    const timeSpanYears = timeSpanMs / (365 * 24 * 60 * 60 * 1000);
+    const annualMileage = timeSpanYears > 0 ? totalMiles / timeSpanYears : 0;
     const monthlyMileage = annualMileage / 12;
 
     // Monthly calculations (last 30 days)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const lastMonthData = data.filter(d => new Date(d.timestamp) >= thirtyDaysAgo);
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const lastMonthData = data.filter(d => d.timestamp >= thirtyDaysAgo);
     const monthlyFuelCost = lastMonthData.reduce((sum, d) => sum + d.totalCost, 0);
     const monthlyMPG = lastMonthData.length > 0 
       ? lastMonthData.reduce((sum, d) => sum + (d.tripMeter / d.gallons), 0) / lastMonthData.length 
       : avgMPG;
 
     // Annual calculations
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-    const lastYearData = data.filter(d => new Date(d.timestamp) >= oneYearAgo);
+    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+    const lastYearData = data.filter(d => d.timestamp >= oneYearAgo);
     const annualFuelCost = lastYearData.reduce((sum, d) => sum + d.totalCost, 0);
-    const annualMileagActual = lastYearData.length > 1
+    const annualMileageActual = lastYearData.length > 1
       ? lastYearData[lastYearData.length - 1].odometer - lastYearData[0].odometer
       : annualMileage;
 
@@ -136,7 +149,7 @@ export default function GasMileageDashboard() {
       totalFuelCost,
       avgMileagePerFillup,
       monthlyMileage,
-      annualMileage: annualMileagActual,
+      annualMileage: annualMileageActual,
       monthlyMPG
     };
   };
@@ -146,9 +159,25 @@ export default function GasMileageDashboard() {
   const formatChartData = () => {
     return data.map(item => ({
       date: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-      costPerGallon: item.costPerGallon,
-      mpg: item.tripMeter / item.gallons
+      fullDate: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      costPerGallon: parseFloat(item.costPerGallon.toFixed(2)),
+      mpg: parseFloat((item.tripMeter / item.gallons).toFixed(2))
     }));
+  };
+
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload, label, valuePrefix = '', valueSuffix = '' }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="text-gray-600 text-sm mb-1">{payload[0].payload.fullDate}</p>
+          <p className="text-gray-900 font-bold">
+            {valuePrefix}{payload[0].value.toFixed(2)}{valueSuffix}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   const MetricCard = ({ title, value, prefix = '', suffix = '', change, reverseColors = false }) => {
@@ -341,15 +370,10 @@ export default function GasMileageDashboard() {
                 />
                 <YAxis 
                   tick={{ fill: '#6b7280', fontSize: 12 }}
-                  domain={['dataMin - 0.5', 'dataMax + 0.5']}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
-                />
+                <Tooltip content={<CustomTooltip valuePrefix="$" />} />
                 <Line 
                   type="monotone" 
                   dataKey="costPerGallon" 
@@ -374,15 +398,10 @@ export default function GasMileageDashboard() {
                 />
                 <YAxis 
                   tick={{ fill: '#6b7280', fontSize: 12 }}
-                  domain={['dataMin - 2', 'dataMax + 2']}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(value) => value.toFixed(1)}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
-                />
+                <Tooltip content={<CustomTooltip valueSuffix=" MPG" />} />
                 <Line 
                   type="monotone" 
                   dataKey="mpg" 
