@@ -375,7 +375,25 @@ export default function GasMileageDashboard() {
     
     return (
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        <div className="flex items-stretch gap-4 h-full">
+        {/* Mobile layout (vertical) - below lg breakpoint */}
+        <div className="lg:hidden">
+          <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-3xl font-bold text-gray-900">
+              {prefix}{value}{suffix}
+            </div>
+            <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+              {Math.abs(change).toFixed(2)}%
+            </div>
+          </div>
+          <div className="h-16">
+            <Sparkline data={sparklineData} color={color} />
+          </div>
+        </div>
+
+        {/* Desktop layout (horizontal) - lg breakpoint and above */}
+        <div className="hidden lg:flex items-stretch gap-4 h-full">
           {/* Left side - Data (1/3 width) */}
           <div className="flex flex-col justify-between flex-1">
             <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
