@@ -248,24 +248,26 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
-    // Create smooth curve path using quadratic bezier curves
+    // Create smooth curve using catmull-rom splines for natural-looking curves
     const createSmoothPath = (points) => {
       if (points.length < 2) return '';
+      if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
       
       let path = `M ${points[0].x},${points[0].y}`;
       
       for (let i = 0; i < points.length - 1; i++) {
-        const current = points[i];
-        const next = points[i + 1];
-        const xMid = (current.x + next.x) / 2;
-        const yMid = (current.y + next.y) / 2;
+        const p0 = points[Math.max(0, i - 1)];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[Math.min(points.length - 1, i + 2)];
         
-        // Use quadratic bezier curves for smooth lines
-        path += ` Q ${current.x},${current.y} ${xMid},${yMid}`;
+        // Control points for cubic bezier (catmull-rom to bezier conversion)
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
         
-        if (i === points.length - 2) {
-          path += ` Q ${next.x},${next.y} ${next.x},${next.y}`;
-        }
+        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
       }
       
       return path;
@@ -277,23 +279,12 @@ export default function GasMileageDashboard() {
     const createSmoothAreaPath = (points) => {
       if (points.length < 2) return '';
       
-      let path = `M 0,90 L ${points[0].x},${points[0].y}`;
+      const linePath = createSmoothPath(points);
+      const areaPath = `M 0,90 L ${points[0].x},${points[0].y} ` + 
+                       linePath.substring(linePath.indexOf('C')) + 
+                       ` L 100,90 Z`;
       
-      for (let i = 0; i < points.length - 1; i++) {
-        const current = points[i];
-        const next = points[i + 1];
-        const xMid = (current.x + next.x) / 2;
-        const yMid = (current.y + next.y) / 2;
-        
-        path += ` Q ${current.x},${current.y} ${xMid},${yMid}`;
-        
-        if (i === points.length - 2) {
-          path += ` Q ${next.x},${next.y} ${next.x},${next.y}`;
-        }
-      }
-      
-      path += ` L 100,90 Z`;
-      return path;
+      return areaPath;
     };
     
     const smoothAreaPath = createSmoothAreaPath(points);
