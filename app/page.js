@@ -248,7 +248,7 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
-    // Create smooth curve path using cardinal spline interpolation
+    // Create smooth curve path using quadratic bezier curves
     const createSmoothPath = (points) => {
       if (points.length < 2) return '';
       
@@ -272,9 +272,31 @@ export default function GasMileageDashboard() {
     };
     
     const smoothPath = createSmoothPath(points);
-    const linePoints = points.map(p => `${p.x},${p.y}`).join(' ');
-    // Create area that fades to zero at 90% height (leaving 10% transparent at bottom)
-    const areaPoints = `0,90 ${linePoints} 100,90`;
+    
+    // Create smooth area path (same as line but closed at bottom at 90% height)
+    const createSmoothAreaPath = (points) => {
+      if (points.length < 2) return '';
+      
+      let path = `M 0,90 L ${points[0].x},${points[0].y}`;
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        const current = points[i];
+        const next = points[i + 1];
+        const xMid = (current.x + next.x) / 2;
+        const yMid = (current.y + next.y) / 2;
+        
+        path += ` Q ${current.x},${current.y} ${xMid},${yMid}`;
+        
+        if (i === points.length - 2) {
+          path += ` Q ${next.x},${next.y} ${next.x},${next.y}`;
+        }
+      }
+      
+      path += ` L 100,90 Z`;
+      return path;
+    };
+    
+    const smoothAreaPath = createSmoothAreaPath(points);
     
     // Create gradient ID based on color to avoid conflicts
     const gradientId = `gradient-${color.replace('#', '')}`;
@@ -288,9 +310,9 @@ export default function GasMileageDashboard() {
             <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
           </linearGradient>
         </defs>
-        <polygon
+        <path
           fill={`url(#${gradientId})`}
-          points={areaPoints}
+          d={smoothAreaPath}
         />
         <path
           fill="none"
