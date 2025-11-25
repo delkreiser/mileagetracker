@@ -248,7 +248,7 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
-    // Create smooth curve with gentle bezier curves - less aggressive smoothing
+    // Create path with very subtle smoothing - minimal curves
     const createSmoothPath = (points) => {
       if (points.length < 2) return '';
       if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
@@ -259,11 +259,13 @@ export default function GasMileageDashboard() {
         const current = points[i];
         const next = points[i + 1];
         
-        // Gentle control points - only 20% of the distance for subtle smoothing
-        const tension = 0.2;
-        const cp1x = current.x + (next.x - current.x) * tension;
+        // Very subtle smoothing - 10% tension for minimal curves
+        const dx = next.x - current.x;
+        const tension = 0.1;
+        
+        const cp1x = current.x + dx * tension;
         const cp1y = current.y;
-        const cp2x = next.x - (next.x - current.x) * tension;
+        const cp2x = next.x - dx * tension;
         const cp2y = next.y;
         
         path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`;
