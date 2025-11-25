@@ -22,8 +22,8 @@ export default function GasMileageDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [timePeriod, setTimePeriod] = useState('all');
-  const [costPerGallonChartPeriod, setCostPerGallonChartPeriod] = useState('all');
-  const [mpgChartPeriod, setMpgChartPeriod] = useState('all');
+  const [costPerGallonChartPeriod, setCostPerGallonChartPeriod] = useState('ytd');
+  const [mpgChartPeriod, setMpgChartPeriod] = useState('ytd');
 
   const SHEET_ID = '1a3QjhxhRyMMYclu3Fs7AJ-ey_rAYMLLPX8uETtP-0_M';
   const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdFwOyl6iX009A1Q5IR_L1v0aFjALdzjWkNDY6b6i8Ya9a3mA/viewform';
@@ -231,24 +231,31 @@ export default function GasMileageDashboard() {
     const min = Math.min(...data);
     const range = max - min || 1;
     
+    // Add 15% padding above and below for visual space
+    const paddingPercent = 15;
+    
     const points = data.map((value, index) => {
       const x = (index / (data.length - 1)) * 100;
-      const y = 100 - ((value - min) / range) * 100;
+      // Map to 15-85 range instead of 0-100 to add padding
+      const normalizedY = ((value - min) / range) * (100 - 2 * paddingPercent) + paddingPercent;
+      const y = 100 - normalizedY;
       return { x, y };
     });
     
     const linePoints = points.map(p => `${p.x},${p.y}`).join(' ');
-    const areaPoints = `0,100 ${linePoints} 100,100`;
+    // Create area that fades to zero at 90% height (leaving 10% transparent at bottom)
+    const areaPoints = `0,90 ${linePoints} 100,90`;
     
     // Create gradient ID based on color to avoid conflicts
     const gradientId = `gradient-${color.replace('#', '')}`;
     
     return (
-      <svg className="w-24 h-12" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.4 }} />
-            <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.05 }} />
+            <stop offset="70%" style={{ stopColor: color, stopOpacity: 0.1 }} />
+            <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
           </linearGradient>
         </defs>
         <polygon
@@ -258,7 +265,7 @@ export default function GasMileageDashboard() {
         <polyline
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="2.5"
           points={linePoints}
         />
       </svg>
@@ -314,18 +321,23 @@ export default function GasMileageDashboard() {
     
     return (
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        <div className="text-gray-600 text-sm font-medium mb-3">{title}</div>
-        <div className="flex items-start justify-between mb-2">
-          <div className="text-3xl font-bold text-gray-900">
-            {prefix}{value}{suffix}
+        <div className="flex items-stretch gap-4 h-full">
+          {/* Left side - Data (1/3 width) */}
+          <div className="flex flex-col justify-between flex-1">
+            <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
+            <div className="text-3xl font-bold text-gray-900 my-auto">
+              {prefix}{value}{suffix}
+            </div>
+            <div className={`flex items-center text-sm font-medium mt-2 ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+              {Math.abs(change).toFixed(2)}%
+            </div>
           </div>
-          <div className="ml-4">
+          
+          {/* Right side - Sparkline (2/3 width) */}
+          <div className="flex-[2]">
             <Sparkline data={sparklineData} color={color} />
           </div>
-        </div>
-        <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
-          {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
-          {Math.abs(change).toFixed(2)}%
         </div>
       </div>
     );
@@ -535,8 +547,8 @@ export default function GasMileageDashboard() {
                   stroke={COLORS.chartMain}
                   strokeWidth={2}
                   fill="url(#colorCostPerGallon)"
-                  dot={{ fill: COLORS.chartMain, r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 6, fill: COLORS.chartMain, stroke: COLORS.chartMain }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -576,8 +588,8 @@ export default function GasMileageDashboard() {
                   stroke={COLORS.chartMain}
                   strokeWidth={2}
                   fill="url(#colorMPG)"
-                  dot={{ fill: COLORS.chartMain, r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 6, fill: COLORS.chartMain, stroke: COLORS.chartMain }}
                 />
               </AreaChart>
             </ResponsiveContainer>
