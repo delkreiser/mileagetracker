@@ -248,7 +248,7 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
-    // Create smooth curve using catmull-rom splines for natural-looking curves
+    // Create smooth curve with gentle bezier curves - less aggressive smoothing
     const createSmoothPath = (points) => {
       if (points.length < 2) return '';
       if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
@@ -256,18 +256,17 @@ export default function GasMileageDashboard() {
       let path = `M ${points[0].x},${points[0].y}`;
       
       for (let i = 0; i < points.length - 1; i++) {
-        const p0 = points[Math.max(0, i - 1)];
-        const p1 = points[i];
-        const p2 = points[i + 1];
-        const p3 = points[Math.min(points.length - 1, i + 2)];
+        const current = points[i];
+        const next = points[i + 1];
         
-        // Control points for cubic bezier (catmull-rom to bezier conversion)
-        const cp1x = p1.x + (p2.x - p0.x) / 6;
-        const cp1y = p1.y + (p2.y - p0.y) / 6;
-        const cp2x = p2.x - (p3.x - p1.x) / 6;
-        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        // Gentle control points - only 20% of the distance for subtle smoothing
+        const tension = 0.2;
+        const cp1x = current.x + (next.x - current.x) * tension;
+        const cp1y = current.y;
+        const cp2x = next.x - (next.x - current.x) * tension;
+        const cp2y = next.y;
         
-        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`;
       }
       
       return path;
@@ -275,19 +274,19 @@ export default function GasMileageDashboard() {
     
     const smoothPath = createSmoothPath(points);
     
-    // Create smooth area path (same as line but closed at bottom at 90% height)
-    const createSmoothAreaPath = (points) => {
+    // Create smooth area path
+    const createSmoothAreaPath = () => {
       if (points.length < 2) return '';
       
       const linePath = createSmoothPath(points);
-      const areaPath = `M 0,90 L ${points[0].x},${points[0].y} ` + 
-                       linePath.substring(linePath.indexOf('C')) + 
-                       ` L 100,90 Z`;
+      // Remove the 'M' from the start and add closing path
+      const pathWithoutM = linePath.substring(linePath.indexOf('M') + 1);
+      const areaPath = `M 0,90 L ${pathWithoutM} L 100,90 Z`;
       
       return areaPath;
     };
     
-    const smoothAreaPath = createSmoothAreaPath(points);
+    const smoothAreaPath = createSmoothAreaPath();
     
     // Create gradient ID based on color to avoid conflicts
     const gradientId = `gradient-${color.replace('#', '')}`;
