@@ -165,6 +165,53 @@ export default function GasMileageDashboard() {
     }));
   };
 
+  // Generate sparkline data for cards
+  const getSparklineData = (dataKey) => {
+    const filteredData = filterDataByPeriod(data);
+    return filteredData.map(item => {
+      switch(dataKey) {
+        case 'gallons':
+          return item.gallons;
+        case 'costPerGallon':
+          return item.costPerGallon;
+        case 'costPerTank':
+          return item.totalCost;
+        case 'costPerMile':
+          return item.totalCost / item.tripMeter;
+        case 'mpg':
+          return item.tripMeter / item.gallons;
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // Sparkline component
+  const Sparkline = ({ data, color = '#2563eb' }) => {
+    if (!data || data.length === 0) return null;
+    
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    
+    const points = data.map((value, index) => {
+      const x = (index / (data.length - 1)) * 100;
+      const y = 100 - ((value - min) / range) * 100;
+      return `${x},${y}`;
+    }).join(' ');
+    
+    return (
+      <svg className="w-20 h-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          points={points}
+        />
+      </svg>
+    );
+  };
+
   // Custom tooltip formatter
   const CustomTooltip = ({ active, payload, label, valuePrefix = '', valueSuffix = '' }) => {
     if (active && payload && payload.length) {
@@ -180,28 +227,34 @@ export default function GasMileageDashboard() {
     return null;
   };
 
-  const MetricCard = ({ title, value, prefix = '', suffix = '', change, reverseColors = false }) => {
+  const MetricCard = ({ title, value, prefix = '', suffix = '', change, reverseColors = false, sparklineData }) => {
     const isPositive = change > 0;
     const showGreen = reverseColors ? !isPositive : isPositive;
+    const sparklineColor = showGreen ? '#16a34a' : '#dc2626';
     
     return (
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
-        <div className="text-3xl font-bold text-gray-900 mb-2">
-          {prefix}{value}{suffix}
+        <div className="text-center">
+          <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
+          <div className="text-3xl font-bold text-gray-900 mb-3">
+            {prefix}{value}{suffix}
+          </div>
         </div>
-        <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
-          {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
-          {Math.abs(change).toFixed(2)}%
+        <div className="flex items-center justify-between">
+          <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
+            {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+            {Math.abs(change).toFixed(2)}%
+          </div>
+          <Sparkline data={sparklineData} color={sparklineColor} />
         </div>
       </div>
     );
   };
 
   const SecondaryCard = ({ title, value, prefix = '', suffix = '' }) => (
-    <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-      <div className="text-gray-600 text-xs font-medium mb-1">{title}</div>
-      <div className="text-2xl font-bold text-gray-900">
+    <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow aspect-square flex flex-col items-center justify-center">
+      <div className="text-gray-600 text-xs font-medium mb-2 text-center">{title}</div>
+      <div className="text-2xl font-bold text-gray-900 text-center">
         {prefix}{value}{suffix}
       </div>
     </div>
@@ -235,34 +288,32 @@ export default function GasMileageDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Gas Mileage Dashboard</h1>
-              <p className="text-gray-600 text-sm">
-                Last updated: {lastUpdated?.toLocaleString()}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => window.open(FORM_URL, '_blank')}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                <ExternalLink size={18} />
-                Add Fill-up
-              </button>
-              <button
-                onClick={fetchData}
-                disabled={loading}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-              >
-                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                Refresh
-              </button>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Gas Mileage Dashboard</h1>
+            <p className="text-gray-600 text-sm">
+              Last updated: {lastUpdated?.toLocaleString()}
+            </p>
           </div>
 
-          {/* Time Period Selector */}
-          <div className="flex gap-2">
+          {/* Buttons - Stack on mobile */}
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => window.open(FORM_URL, '_blank')}
+              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors w-full"
+            >
+              <ExternalLink size={18} />
+              Add Fill-up
+            </button>
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 w-full"
+            >
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+            
+            {/* Time Period Selector */}
             {[
               { label: 'Last 30 Days', value: '30' },
               { label: 'Last 90 Days', value: '90' },
@@ -272,7 +323,7 @@ export default function GasMileageDashboard() {
               <button
                 key={period.value}
                 onClick={() => setTimePeriod(period.value)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors w-full ${
                   timePeriod === period.value
                     ? 'bg-blue-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -291,6 +342,7 @@ export default function GasMileageDashboard() {
             value={metrics.avgGallons.toFixed(2)}
             change={metrics.gallonsChange}
             reverseColors={true}
+            sparklineData={getSparklineData('gallons')}
           />
           <MetricCard
             title="Cost/Gallon"
@@ -298,6 +350,7 @@ export default function GasMileageDashboard() {
             prefix="$"
             change={metrics.costPerGallonChange}
             reverseColors={true}
+            sparklineData={getSparklineData('costPerGallon')}
           />
           <MetricCard
             title="Cost/Tank"
@@ -305,6 +358,7 @@ export default function GasMileageDashboard() {
             prefix="$"
             change={metrics.costPerTankChange}
             reverseColors={true}
+            sparklineData={getSparklineData('costPerTank')}
           />
           <MetricCard
             title="Cost/Mile"
@@ -312,12 +366,14 @@ export default function GasMileageDashboard() {
             prefix="$"
             change={metrics.costPerMileChange}
             reverseColors={true}
+            sparklineData={getSparklineData('costPerMile')}
           />
           <MetricCard
             title="MPG"
             value={metrics.avgMPG.toFixed(1)}
             change={metrics.mpgChange}
             reverseColors={false}
+            sparklineData={getSparklineData('mpg')}
           />
         </div>
 
