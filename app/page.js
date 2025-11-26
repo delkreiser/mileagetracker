@@ -229,7 +229,7 @@ export default function GasMileageDashboard() {
     });
   };
 
-  // Sparkline component with gradient
+  // Sparkline component with gradient - using straight lines for clean rendering
   const Sparkline = ({ data, color = '#2563eb' }) => {
     if (!data || data.length === 0) return null;
     
@@ -248,53 +248,42 @@ export default function GasMileageDashboard() {
       return { x, y };
     });
     
-    // Create path with very subtle smoothing - minimal curves
-    const createSmoothPath = (points) => {
+    // Create path with straight lines - no curves
+    const createLinePath = (points) => {
       if (points.length < 2) return '';
-      if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
       
       let path = `M ${points[0].x},${points[0].y}`;
       
-      for (let i = 0; i < points.length - 1; i++) {
-        const current = points[i];
-        const next = points[i + 1];
-        
-        // Very subtle smoothing - 10% tension for minimal curves
-        const dx = next.x - current.x;
-        const tension = 0.1;
-        
-        const cp1x = current.x + dx * tension;
-        const cp1y = current.y;
-        const cp2x = next.x - dx * tension;
-        const cp2y = next.y;
-        
-        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`;
+      for (let i = 1; i < points.length; i++) {
+        path += ` L ${points[i].x},${points[i].y}`;
       }
       
       return path;
     };
     
-    const smoothPath = createSmoothPath(points);
+    const linePath = createLinePath(points);
     
-    // Create smooth area path
-    const createSmoothAreaPath = () => {
+    // Create area path - straight lines to bottom at 90%
+    const createAreaPath = () => {
       if (points.length < 2) return '';
       
-      const linePath = createSmoothPath(points);
-      // Remove the 'M' from the start and add closing path
-      const pathWithoutM = linePath.substring(linePath.indexOf('M') + 1);
-      const areaPath = `M 0,90 L ${pathWithoutM} L 100,90 Z`;
+      let path = `M 0,90 L ${points[0].x},${points[0].y}`;
       
-      return areaPath;
+      for (let i = 1; i < points.length; i++) {
+        path += ` L ${points[i].x},${points[i].y}`;
+      }
+      
+      path += ` L 100,90 Z`;
+      return path;
     };
     
-    const smoothAreaPath = createSmoothAreaPath();
+    const areaPath = createAreaPath();
     
     // Create gradient ID based on color to avoid conflicts
     const gradientId = `gradient-${color.replace('#', '')}`;
     
     return (
-      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRacing="none">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.4 }} />
@@ -304,13 +293,13 @@ export default function GasMileageDashboard() {
         </defs>
         <path
           fill={`url(#${gradientId})`}
-          d={smoothAreaPath}
+          d={areaPath}
         />
         <path
           fill="none"
           stroke={color}
           strokeWidth="1.5"
-          d={smoothPath}
+          d={linePath}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -367,41 +356,18 @@ export default function GasMileageDashboard() {
     
     return (
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        {/* Mobile layout (vertical) - below lg breakpoint */}
-        <div className="lg:hidden">
-          <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-3xl font-bold text-gray-900">
-              {prefix}{value}{suffix}
-            </div>
-            <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
-              {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
-              {Math.abs(change).toFixed(2)}%
-            </div>
+        <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-3xl font-bold text-gray-900">
+            {prefix}{value}{suffix}
           </div>
-          <div className="h-16">
-            <Sparkline data={sparklineData} color={color} />
+          <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
+            {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+            {Math.abs(change).toFixed(2)}%
           </div>
         </div>
-
-        {/* Desktop layout (horizontal) - lg breakpoint and above */}
-        <div className="hidden lg:flex items-stretch gap-4 h-full">
-          {/* Left side - Data (1/3 width) */}
-          <div className="flex flex-col justify-between flex-1">
-            <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
-            <div className="text-3xl font-bold text-gray-900 my-auto">
-              {prefix}{value}{suffix}
-            </div>
-            <div className={`flex items-center text-sm font-medium mt-2 ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
-              {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
-              {Math.abs(change).toFixed(2)}%
-            </div>
-          </div>
-          
-          {/* Right side - Sparkline (2/3 width) */}
-          <div className="flex-[2]">
-            <Sparkline data={sparklineData} color={color} />
-          </div>
+        <div className="h-16">
+          <Sparkline data={sparklineData} color={color} />
         </div>
       </div>
     );
@@ -587,32 +553,30 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: -20, right: 10 }}>
+              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="colorCostPerGallon" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
                     <stop offset="95%" stopColor={COLORS.chartMain} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                <Tooltip 
+                  content={<CustomTooltip valuePrefix="$" />}
+                  cursor={{ stroke: COLORS.chartMain, strokeWidth: 3, strokeOpacity: 0.3 }}
                 />
-                <YAxis 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  domain={['auto', 'auto']}
-                  tickFormatter={(value) => `$${value.toFixed(2)}`}
-                />
-                <Tooltip content={<CustomTooltip valuePrefix="$" />} />
                 <Area
                   type="monotone"
                   dataKey="costPerGallon"
                   stroke={COLORS.chartMain}
                   strokeWidth={2}
                   fill="url(#colorCostPerGallon)"
-                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 6, fill: COLORS.chartMain, stroke: COLORS.chartMain }}
+                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4, fillOpacity: 1 }}
+                  activeDot={{ 
+                    r: 6, 
+                    fill: '#ffffff', 
+                    stroke: COLORS.costPerTank, 
+                    strokeWidth: 3
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -628,32 +592,30 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: -20, right: 10 }}>
+              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="colorMPG" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
                     <stop offset="95%" stopColor={COLORS.chartMain} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                <Tooltip 
+                  content={<CustomTooltip valueSuffix=" MPG" />}
+                  cursor={{ stroke: COLORS.chartMain, strokeWidth: 3, strokeOpacity: 0.3 }}
                 />
-                <YAxis 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  domain={['auto', 'auto']}
-                  tickFormatter={(value) => value.toFixed(1)}
-                />
-                <Tooltip content={<CustomTooltip valueSuffix=" MPG" />} />
                 <Area
                   type="monotone"
                   dataKey="mpg"
                   stroke={COLORS.chartMain}
                   strokeWidth={2}
                   fill="url(#colorMPG)"
-                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 6, fill: COLORS.chartMain, stroke: COLORS.chartMain }}
+                  dot={{ fill: COLORS.chartMain, stroke: COLORS.chartMain, strokeWidth: 0, r: 4, fillOpacity: 1 }}
+                  activeDot={{ 
+                    r: 6, 
+                    fill: '#ffffff', 
+                    stroke: COLORS.costPerTank, 
+                    strokeWidth: 3
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
