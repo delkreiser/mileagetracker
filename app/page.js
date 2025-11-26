@@ -283,7 +283,7 @@ export default function GasMileageDashboard() {
     const gradientId = `gradient-${color.replace('#', '')}`;
     
     return (
-      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRacing="none">
+      <svg className="w-full h-full block" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: '100%' }}>
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.4 }} />
@@ -358,7 +358,7 @@ export default function GasMileageDashboard() {
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
         <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
         <div className="flex items-center justify-between mb-3">
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-3xl font-bold" style={{ color: COLORS.chartMain }}>
             {prefix}{value}{suffix}
           </div>
           <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
@@ -374,7 +374,7 @@ export default function GasMileageDashboard() {
   };
 
   const SecondaryCard = ({ title, value, prefix = '', suffix = '' }) => (
-    <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow aspect-square flex flex-col items-center justify-center">
+    <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center">
       <div className="text-gray-600 text-xs font-medium mb-2 text-center">{title}</div>
       <div className="text-2xl font-bold text-gray-900 text-center">
         {prefix}{value}{suffix}
@@ -406,7 +406,7 @@ export default function GasMileageDashboard() {
   const chartData = formatChartData();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -553,7 +553,7 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }}>
+              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }} className="sm:!ml-0 !-ml-6">
                 <defs>
                   <linearGradient id="colorCostPerGallon" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
@@ -606,7 +606,7 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }}>
+              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }} className="sm:!ml-0 !-ml-6">
                 <defs>
                   <linearGradient id="colorMPG" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
