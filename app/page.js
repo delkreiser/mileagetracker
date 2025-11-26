@@ -306,8 +306,6 @@ export default function GasMileageDashboard() {
           stroke={color}
           strokeWidth="1.5"
           d={linePath}
-          strokeLinecap="round"
-          strokeLinejoin="round"
         />
       </svg>
     );
@@ -364,7 +362,7 @@ export default function GasMileageDashboard() {
       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
         <div className="text-gray-600 text-sm font-medium mb-2">{title}</div>
         <div className="flex items-center justify-between mb-3">
-          <div className="text-3xl font-bold" style={{ color: COLORS.chartMain }}>
+          <div className="text-3xl font-bold" style={{ color: color }}>
             {prefix}{value}{suffix}
           </div>
           <div className={`flex items-center text-sm font-medium ${showGreen ? 'text-green-600' : 'text-red-600'}`}>
@@ -379,14 +377,18 @@ export default function GasMileageDashboard() {
     );
   };
 
-  const SecondaryCard = ({ title, value, prefix = '', suffix = '' }) => (
-    <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center">
-      <div className="text-gray-600 text-xs font-medium mb-2 text-center">{title}</div>
-      <div className="text-2xl font-bold text-gray-900 text-center">
-        {prefix}{value}{suffix}
+  const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost' }) => {
+    const bgColor = type === 'cost' ? 'bg-green-50' : 'bg-orange-50';
+    
+    return (
+      <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center`}>
+        <div className="text-gray-600 text-xs font-medium mb-2 text-center">{title}</div>
+        <div className="text-3xl font-bold text-gray-900 text-center">
+          {prefix}{value}{suffix}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -518,32 +520,39 @@ export default function GasMileageDashboard() {
             title="Monthly Fuel Cost"
             value={metrics.monthlyFuelCost.toFixed(0)}
             prefix="$"
+            type="cost"
           />
           <SecondaryCard
             title="Annual Fuel Cost"
             value={metrics.annualFuelCost.toFixed(0)}
             prefix="$"
+            type="cost"
           />
           <SecondaryCard
             title="Total Fuel Cost"
             value={metrics.totalFuelCost.toFixed(0)}
             prefix="$"
+            type="cost"
           />
           <SecondaryCard
             title="Mileage per Fill-up"
             value={metrics.avgMileagePerFillup.toFixed(0)}
+            type="mileage"
           />
           <SecondaryCard
             title="Monthly Mileage"
             value={metrics.monthlyMileage.toFixed(0)}
+            type="mileage"
           />
           <SecondaryCard
             title="Annual Mileage"
             value={metrics.annualMileage.toFixed(0)}
+            type="mileage"
           />
           <SecondaryCard
             title="Monthly MPG"
             value={metrics.monthlyMPG.toFixed(1)}
+            type="mileage"
           />
         </div>
 
