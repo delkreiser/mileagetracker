@@ -366,7 +366,7 @@ export default function GasMileageDashboard() {
             {Math.abs(change).toFixed(2)}%
           </div>
         </div>
-        <div className="h-16">
+        <div className="w-full h-16">
           <Sparkline data={sparklineData} color={color} />
         </div>
       </div>
@@ -553,13 +553,27 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+              <AreaChart data={filterChartData(chartData, costPerGallonChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }}>
                 <defs>
                   <linearGradient id="colorCostPerGallon" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
                     <stop offset="95%" stopColor={COLORS.chartMain} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip 
                   content={<CustomTooltip valuePrefix="$" />}
                   cursor={{ stroke: COLORS.chartMain, strokeWidth: 3, strokeOpacity: 0.3 }}
@@ -592,13 +606,27 @@ export default function GasMileageDashboard() {
               />
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+              <AreaChart data={filterChartData(chartData, mpgChartPeriod)} margin={{ left: 10, right: 10, top: 20, bottom: 20 }}>
                 <defs>
                   <linearGradient id="colorMPG" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.chartMain} stopOpacity={0.3}/>
                     <stop offset="95%" stopColor={COLORS.chartMain} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(value) => value.toFixed(1)}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip 
                   content={<CustomTooltip valueSuffix=" MPG" />}
                   cursor={{ stroke: COLORS.chartMain, strokeWidth: 3, strokeOpacity: 0.3 }}
