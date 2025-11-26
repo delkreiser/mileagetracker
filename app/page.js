@@ -235,7 +235,7 @@ export default function GasMileageDashboard() {
     });
   };
 
-  // Sparkline component with gradient - using straight lines for clean rendering
+  // Sparkline component with gradient - proper aspect ratio for consistent lines
   const Sparkline = ({ data, color = '#2563eb' }) => {
     if (!data || data.length === 0) return null;
     
@@ -243,18 +243,19 @@ export default function GasMileageDashboard() {
     const min = Math.min(...data);
     const range = max - min || 1;
     
-    // Add 15% padding above and below for visual space
-    const paddingPercent = 15;
+    // Add padding above and below
+    const paddingPercent = 0.15;
+    const yMin = min - range * paddingPercent;
+    const yMax = max + range * paddingPercent;
+    const yRange = yMax - yMin;
     
     const points = data.map((value, index) => {
-      const x = (index / (data.length - 1)) * 100;
-      // Map to 15-85 range instead of 0-100 to add padding
-      const normalizedY = ((value - min) / range) * (100 - 2 * paddingPercent) + paddingPercent;
-      const y = 100 - normalizedY;
+      const x = index;
+      const y = yMax - (value - yMin); // Flip Y so 0 is at top
       return { x, y };
     });
     
-    // Create path with straight lines - no curves
+    // Create path with straight lines
     const createLinePath = (points) => {
       if (points.length < 2) return '';
       
@@ -269,17 +270,18 @@ export default function GasMileageDashboard() {
     
     const linePath = createLinePath(points);
     
-    // Create area path - straight lines to bottom at 90%
+    // Create area path - close at bottom
     const createAreaPath = () => {
       if (points.length < 2) return '';
       
-      let path = `M 0,90 L ${points[0].x},${points[0].y}`;
+      const bottomY = yMax + yRange * 0.05; // 5% below the padded range
+      let path = `M 0,${bottomY} L ${points[0].x},${points[0].y}`;
       
       for (let i = 1; i < points.length; i++) {
         path += ` L ${points[i].x},${points[i].y}`;
       }
       
-      path += ` L 100,90 Z`;
+      path += ` L ${points[points.length - 1].x},${bottomY} Z`;
       return path;
     };
     
@@ -288,8 +290,16 @@ export default function GasMileageDashboard() {
     // Create gradient ID based on color to avoid conflicts
     const gradientId = `gradient-${color.replace('#', '')}`;
     
+    const width = Math.max(data.length - 1, 1);
+    const height = yRange * 1.1;
+    
     return (
-      <svg className="w-full h-full block" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: '100%' }}>
+      <svg 
+        className="w-full h-full block" 
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height: '100%' }}
+      >
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.4 }} />
@@ -304,8 +314,9 @@ export default function GasMileageDashboard() {
         <path
           fill="none"
           stroke={color}
-          strokeWidth="1.5"
+          strokeWidth="2"
           d={linePath}
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
     );
