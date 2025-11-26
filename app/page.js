@@ -39,7 +39,13 @@ export default function GasMileageDashboard() {
       
       const rows = json.table.rows.slice(3); // Skip header rows
       const parsedData = rows
-        .filter(row => row.c[1] && row.c[1].v && row.c[3] && row.c[3].v) // Filter valid rows
+        .filter(row => {
+          // Must have odometer (not zero) and gallons (not zero) and cost data
+          const hasOdometer = row.c[1] && row.c[1].v && row.c[1].v > 0;
+          const hasGallons = row.c[3] && row.c[3].v && row.c[3].v > 0;
+          const hasCost = row.c[4] && row.c[4].v && row.c[4].v > 0;
+          return hasOdometer && hasGallons && hasCost;
+        })
         .map(row => {
           // Parse the timestamp properly
           let timestamp;
@@ -62,7 +68,7 @@ export default function GasMileageDashboard() {
             costPerGallon: parseFloat(row.c[5]?.v || 0),
           };
         })
-        .filter(item => item.gallons > 0 && !isNaN(item.timestamp)); // Only valid fill-ups
+        .filter(item => !isNaN(item.timestamp)); // Only valid timestamps
 
       setData(parsedData);
       setLastUpdated(new Date());
