@@ -289,7 +289,7 @@ export default function GasMileageDashboard() {
     const gradientId = `gradient-${color.replace('#', '')}`;
     
     return (
-      <svg className="w-full h-full" viewBox="0 0 100 100" style={{ display: 'block' }}>
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block' }}>
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.4 }} />
@@ -304,9 +304,8 @@ export default function GasMileageDashboard() {
         <path
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="1"
           d={linePath}
-          vectorEffect="non-scaling-stroke"
         />
       </svg>
     );
