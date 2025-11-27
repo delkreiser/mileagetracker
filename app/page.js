@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown, RefreshCw, ExternalLink } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Info } from 'lucide-react';
 
 // Color Palette
 const COLORS = {
@@ -377,12 +377,33 @@ export default function GasMileageDashboard() {
     );
   };
 
-  const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost' }) => {
+  const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost', tooltip = '' }) => {
     const bgColor = type === 'cost' ? 'bg-green-50' : 'bg-orange-50';
+    const [showTooltip, setShowTooltip] = React.useState(false);
     
     return (
-      <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center`}>
-        <div className="text-gray-600 text-xs font-medium mb-2 text-center">{title}</div>
+      <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center relative`}>
+        <div className="text-gray-600 text-xs font-medium mb-2 text-center flex items-center justify-center gap-1">
+          {title}
+          {tooltip && (
+            <div className="relative inline-block">
+              <Info 
+                size={14} 
+                className="text-gray-400 cursor-help"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+              />
+              {showTooltip && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10 pointer-events-none">
+                  {tooltip}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div className="text-3xl font-bold text-gray-900 text-center">
           {prefix}{value}{suffix}
         </div>
@@ -521,38 +542,45 @@ export default function GasMileageDashboard() {
             value={metrics.monthlyFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
+            tooltip="Total spent on fuel in the last 30 days"
           />
           <SecondaryCard
             title="Annual Fuel Cost"
             value={metrics.annualFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
+            tooltip="Total spent on fuel in the last 365 days"
           />
           <SecondaryCard
             title="Total Fuel Cost"
             value={metrics.totalFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
+            tooltip="Total spent on fuel since you started tracking"
           />
           <SecondaryCard
             title="Mileage per Fill-up"
             value={metrics.avgMileagePerFillup.toFixed(0)}
             type="mileage"
+            tooltip="Average miles driven between fill-ups"
           />
           <SecondaryCard
             title="Monthly Mileage"
             value={metrics.monthlyMileage.toFixed(0)}
             type="mileage"
+            tooltip="Average miles driven per month based on your entire tracking history"
           />
           <SecondaryCard
             title="Annual Mileage"
             value={metrics.annualMileage.toFixed(0)}
             type="mileage"
+            tooltip="Total miles driven in the last 365 days"
           />
           <SecondaryCard
             title="Monthly MPG"
             value={metrics.monthlyMPG.toFixed(1)}
             type="mileage"
+            tooltip="Average fuel efficiency over the last 30 days"
           />
         </div>
 
