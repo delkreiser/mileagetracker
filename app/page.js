@@ -544,30 +544,30 @@ export default function GasMileageDashboard() {
         </div>
 
         {/* Secondary Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
           <SecondaryCard
-            title="Monthly Fuel Cost"
+            title="Monthly Cost"
             value={metrics.monthlyFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
             tooltip="Total spent on fuel in the last 30 days"
           />
           <SecondaryCard
-            title="Annual Fuel Cost"
+            title="Annual Cost"
             value={metrics.annualFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
             tooltip="Total spent on fuel in the last 365 days"
           />
           <SecondaryCard
-            title="Total Fuel Cost"
+            title="Total Cost"
             value={metrics.totalFuelCost.toFixed(0)}
             prefix="$"
             type="cost"
             tooltip="Total spent on fuel since you started tracking"
           />
           <SecondaryCard
-            title="Mileage per Fill-up"
+            title="Mileage/Fill-up"
             value={metrics.avgMileagePerFillup.toFixed(0)}
             type="mileage"
             tooltip="Average miles driven between fill-ups"
