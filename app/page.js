@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Info, DollarSign, Navigation, Gauge } from 'lucide-react';
 
 // Color Palette
 const COLORS = {
@@ -379,11 +379,19 @@ export default function GasMileageDashboard() {
 
   const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost', tooltip = '' }) => {
     const bgColor = type === 'cost' ? 'bg-green-50' : 'bg-orange-50';
+    const iconColor = type === 'cost' ? '#10b981' : '#f97316';
+    const numberColor = type === 'cost' ? '#10b981' : '#f97316';
     const [showTooltip, setShowTooltip] = React.useState(false);
     
+    // Choose icon based on type
+    const Icon = type === 'cost' ? DollarSign : Navigation;
+    
     return (
-      <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square flex flex-col items-center justify-center relative`}>
-        <div className="text-gray-600 text-xs font-medium mb-2 text-center flex items-center justify-center gap-1">
+      <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square lg:aspect-auto flex flex-col items-center justify-center relative`}>
+        <div className="mb-2">
+          <Icon size={24} color={iconColor} strokeWidth={2} />
+        </div>
+        <div className="text-gray-600 text-xs lg:text-sm font-medium mb-2 text-center flex items-center justify-center gap-1">
           {title}
           {tooltip && (
             <div className="relative inline-block">
@@ -404,7 +412,7 @@ export default function GasMileageDashboard() {
             </div>
           )}
         </div>
-        <div className="text-3xl font-bold text-gray-900 text-center">
+        <div className="text-3xl lg:text-4xl font-bold text-center" style={{ color: numberColor }}>
           {prefix}{value}{suffix}
         </div>
       </div>
