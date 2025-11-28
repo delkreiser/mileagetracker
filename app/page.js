@@ -160,6 +160,38 @@ export default function GasMileageDashboard() {
 
     const avgMileagePerFillup = filteredData.reduce((sum, d) => sum + d.tripMeter, 0) / filteredData.length;
 
+    // Calculate comparisons for secondary cards
+    // Monthly Fuel Cost: last 30 days vs previous 30 days
+    const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000;
+    const prev30DaysData = data.filter(d => d.timestamp >= sixtyDaysAgo && d.timestamp < thirtyDaysAgo);
+    const prevMonthlyFuelCost = prev30DaysData.reduce((sum, d) => sum + d.totalCost, 0);
+    const monthlyFuelCostChange = prevMonthlyFuelCost > 0 ? monthlyFuelCost - prevMonthlyFuelCost : 0;
+
+    // Annual Fuel Cost: last 365 days vs previous 365 days
+    const twoYearsAgo = Date.now() - 730 * 24 * 60 * 60 * 1000;
+    const prevYearData = data.filter(d => d.timestamp >= twoYearsAgo && d.timestamp < oneYearAgo);
+    const prevAnnualFuelCost = prevYearData.reduce((sum, d) => sum + d.totalCost, 0);
+    const annualFuelCostChange = prevAnnualFuelCost > 0 ? annualFuelCost - prevAnnualFuelCost : 0;
+
+    // Monthly Mileage: current month vs previous month (based on average)
+    const prevMonthlyMileage = monthlyMileage; // This is historical average, so we'll compare differently
+    const currentMonthMiles = lastMonthData.length > 1 
+      ? lastMonthData[lastMonthData.length - 1].odometer - lastMonthData[0].odometer 
+      : 0;
+    const monthlyMileageChange = currentMonthMiles - monthlyMileage;
+
+    // Annual Mileage: last 365 days vs previous 365 days
+    const prevAnnualMileage = prevYearData.length > 1
+      ? prevYearData[prevYearData.length - 1].odometer - prevYearData[0].odometer
+      : 0;
+    const annualMileageChange = prevAnnualMileage > 0 ? annualMileageActual - prevAnnualMileage : 0;
+
+    // Monthly MPG: last 30 days vs previous 30 days
+    const prevMonthlyMPG = prev30DaysData.length > 0
+      ? prev30DaysData.reduce((sum, d) => sum + (d.tripMeter / d.gallons), 0) / prev30DaysData.length
+      : 0;
+    const monthlyMPGChange = prevMonthlyMPG > 0 ? monthlyMPG - prevMonthlyMPG : 0;
+
     return {
       avgGallons,
       avgCostPerGallon,
@@ -177,7 +209,13 @@ export default function GasMileageDashboard() {
       avgMileagePerFillup,
       monthlyMileage,
       annualMileage: annualMileageActual,
-      monthlyMPG
+      monthlyMPG,
+      // Comparison changes
+      monthlyFuelCostChange,
+      annualFuelCostChange,
+      monthlyMileageChange,
+      annualMileageChange,
+      monthlyMPGChange
     };
   };
 
@@ -377,18 +415,38 @@ export default function GasMileageDashboard() {
     );
   };
 
-  const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost', tooltip = '' }) => {
+  const SecondaryCard = ({ title, value, prefix = '', suffix = '', type = 'cost', tooltip = '', comparison = null, comparisonLabel = '' }) => {
     const bgColor = type === 'cost' ? 'bg-green-50' : 'bg-orange-50';
     const iconColor = type === 'cost' ? '#10b981' : '#f97316';
     const numberColor = type === 'cost' ? '#10b981' : '#f97316';
     const [showTooltip, setShowTooltip] = React.useState(false);
     
     // Choose icon based on type
-    const Icon = type === 'cost' ? DollarSign : Gauge; // Changed to Gauge
+    const Icon = type === 'cost' ? DollarSign : Navigation;
     
     const handleTooltipToggle = () => {
       setShowTooltip(!showTooltip);
     };
+    
+    // Determine comparison color and arrow
+    let comparisonColor = 'text-gray-500';
+    let ComparisonIcon = null;
+    
+    if (comparison !== null && comparison !== 0) {
+      const isIncrease = comparison > 0;
+      
+      // For costs and mileage: increase = red, decrease = green
+      // For MPG: increase = green, decrease = red (reversed)
+      const isMPG = title.includes('MPG');
+      
+      if (isMPG) {
+        comparisonColor = isIncrease ? 'text-green-600' : 'text-red-600';
+      } else {
+        comparisonColor = isIncrease ? 'text-red-600' : 'text-green-600';
+      }
+      
+      ComparisonIcon = isIncrease ? TrendingUp : TrendingDown;
+    }
     
     return (
       <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square lg:aspect-auto flex flex-col items-center justify-center relative`}>
@@ -421,6 +479,12 @@ export default function GasMileageDashboard() {
         <div className="text-3xl lg:text-4xl font-bold text-center" style={{ color: numberColor }}>
           {prefix}{value}{suffix}
         </div>
+        {comparison !== null && comparison !== 0 && ComparisonIcon && (
+          <div className={`flex items-center gap-1 mt-1 text-xs ${comparisonColor} font-medium`}>
+            <ComparisonIcon size={12} />
+            {prefix}{Math.abs(comparison).toFixed(prefix === '$' ? 0 : 1)}{suffix} {comparisonLabel}
+          </div>
+        )}
       </div>
     );
   };
@@ -557,6 +621,8 @@ export default function GasMileageDashboard() {
             prefix="$"
             type="cost"
             tooltip="Total spent on fuel in the last 30 days"
+            comparison={metrics.monthlyFuelCostChange}
+            comparisonLabel="vs last month"
           />
           <SecondaryCard
             title="Annual Cost"
@@ -564,6 +630,8 @@ export default function GasMileageDashboard() {
             prefix="$"
             type="cost"
             tooltip="Total spent on fuel in the last 365 days"
+            comparison={metrics.annualFuelCostChange}
+            comparisonLabel="vs last year"
           />
           <SecondaryCard
             title="Total Cost"
@@ -583,18 +651,24 @@ export default function GasMileageDashboard() {
             value={metrics.monthlyMileage.toFixed(0)}
             type="mileage"
             tooltip="Average miles driven per month based on your entire tracking history"
+            comparison={metrics.monthlyMileageChange}
+            comparisonLabel="vs avg"
           />
           <SecondaryCard
             title="Annual Mileage"
             value={metrics.annualMileage.toFixed(0)}
             type="mileage"
             tooltip="Total miles driven in the last 365 days"
+            comparison={metrics.annualMileageChange}
+            comparisonLabel="vs last year"
           />
           <SecondaryCard
             title="Monthly MPG"
             value={metrics.monthlyMPG.toFixed(1)}
             type="mileage"
             tooltip="Average fuel efficiency over the last 30 days"
+            comparison={metrics.monthlyMPGChange}
+            comparisonLabel="vs last month"
           />
         </div>
 
