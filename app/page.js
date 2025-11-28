@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Info, DollarSign, Navigation, Gauge } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Info, DollarSign, Navigation, Gauge, Route, Activity } from 'lucide-react';
 
 // Color Palette
 const COLORS = {
@@ -384,7 +384,11 @@ export default function GasMileageDashboard() {
     const [showTooltip, setShowTooltip] = React.useState(false);
     
     // Choose icon based on type
-    const Icon = type === 'cost' ? DollarSign : Navigation;
+    const Icon = type === 'cost' ? DollarSign : Gauge; // Changed to Gauge
+    
+    const handleTooltipToggle = () => {
+      setShowTooltip(!showTooltip);
+    };
     
     return (
       <div className={`${bgColor} rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow aspect-square lg:aspect-auto flex flex-col items-center justify-center relative`}>
@@ -400,9 +404,11 @@ export default function GasMileageDashboard() {
                 className="text-gray-400 cursor-help"
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
+                onClick={handleTooltipToggle}
+                onTouchStart={handleTooltipToggle}
               />
               {showTooltip && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10 pointer-events-none">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10">
                   {tooltip}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                     <div className="border-4 border-transparent border-t-gray-900"></div>
